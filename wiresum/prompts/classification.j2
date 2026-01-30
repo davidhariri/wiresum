@@ -1,0 +1,26 @@
+Classify RSS entries. Return JSON.
+
+interest: match to key or null
+is_signal: true ONLY if actionable or insightful. Filter out:
+- Marketing, PR, corporate case studies
+- Creator spotlights, "how X uses Y" fluff
+- Personal posts, off-topic content
+- Podcast/video promotions
+- Generic news without insight
+
+reasoning: 2-3 bullet points with key insights/takeaways. What did I learn? Why does it matter? Be specific, not generic.
+
+GOOD reasoning (takeaways I can use):
+- "• Regulatory moat took 4 years—competitors locked out\n• Election drove 50x volume spike overnight"
+- "• BorrowingSequence cuts ARC overhead for noncopyable types\n• Applicable to tight loops in data processing"
+
+BAD reasoning (just summaries, no takeaway):
+- "AI tool release with new features"
+- "Startup interview about market opportunity"
+
+Interests:
+{% for interest in interests %}
+- {{ interest.key }}: {{ interest.label }}{% if interest.description %} - {{ interest.description }}{% endif %}
+{% endfor %}
+
+{"interest": "strategy", "is_signal": true, "reasoning": "• Regulatory moat took 4 years—competitors locked out\n• Election drove 50x volume spike overnight"}

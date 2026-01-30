@@ -1,0 +1,89 @@
+name: Claude Builder - Address Feedback
+on:
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  address-feedback:
+    # Only respond to changes_requested on claude/ branches
+    if: |
+      github.event.review.state == 'changes_requested' &&
+      startsWith(github.event.pull_request.head.ref, 'claude/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      # Check and update loop count (stored as label)
+      - name: Check loop count
+        id: loop
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = context.payload.pull_request.labels.map(l => l.name);
+            const loopLabel = labels.find(l => l.startsWith('claude-loop-'));
+            const count = loopLabel ? parseInt(loopLabel.split('-')[2]) : 0;
+            const newCount = count + 1;
+
+            // Remove old label if exists
+            if (loopLabel) {
+              try {
+                await github.rest.issues.removeLabel({
+                  ...context.repo,
+                  issue_number: context.payload.pull_request.number,
+                  name: loopLabel
+                });
+              } catch (e) {
+                console.log('Label removal failed, continuing:', e.message);
+              }
+            }
+
+            // Add new count label
+            await github.rest.issues.addLabels({
+              ...context.repo,
+              issue_number: context.payload.pull_request.number,
+              labels: [`claude-loop-${newCount}`]
+            });
+
+            core.setOutput('count', newCount);
+            core.setOutput('exceeded', newCount >= 5);
+            console.log(`Loop count: ${newCount}, exceeded: ${newCount >= 5}`);
+
+      # Notify human if loop limit exceeded
+      - name: Notify human - loop limit reached
+        if: steps.loop.outputs.exceeded == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: context.payload.pull_request.number,
+              body: '@david Builder and Reviewer have gone back and forth 5+ times without resolution. Human intervention needed.\n\nReview the feedback history and either:\n- Provide guidance to the builder\n- Manually make the changes\n- Close the PR if the task is not feasible'
+            });
+
+      # Address feedback if loop not exceeded
+      - uses: anthropics/claude-code-action@v1
+        if: steps.loop.outputs.exceeded != 'true'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            The reviewer has requested changes on this PR. Address their feedback.
+
+            Review feedback:
+            ${{ github.event.review.body }}
+
+            Instructions:
+            1. Read the review comments carefully
+            2. Make the necessary code changes
+            3. Push a new commit with your changes
+            4. Do NOT ask questions - implement the requested changes
+
+            If the feedback is unclear, make your best interpretation and note any assumptions in your commit message.
+          mode: automation

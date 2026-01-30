@@ -1,0 +1,50 @@
+{
+  "model": "openai/gpt-oss-120b",
+  "interests": [
+    {
+      "key": "ai",
+      "label": "AI",
+      "description": "AI research, techniques, applied AI. How companies use AI. NOT product announcements or releases."
+    },
+    {
+      "key": "apple",
+      "label": "Apple",
+      "description": "Apple hardware rumors, OS features, ecosystem news. NOT developer content, NOT design opinion/commentary."
+    },
+    {
+      "key": "apps",
+      "label": "Apps",
+      "description": "Productivity apps, tools that improve personal workflows"
+    },
+    {
+      "key": "dev-tools",
+      "label": "Dev Tools",
+      "description": "Developer tools, frameworks, build systems, CLIs, IDEs"
+    },
+    {
+      "key": "python",
+      "label": "Python",
+      "description": "Python language, libraries, packages, ecosystem"
+    },
+    {
+      "key": "releases",
+      "label": "Releases",
+      "description": "New LLM model releases and major AI model announcements"
+    },
+    {
+      "key": "strategy",
+      "label": "Strategy",
+      "description": "Software business strategy analysis with actionable insights. Pricing, GTM, market dynamics. NOT corporate announcements or PR."
+    },
+    {
+      "key": "swift",
+      "label": "Swift",
+      "description": "Swift language, iOS/macOS development, UIKit, SwiftUI, Xcode"
+    },
+    {
+      "key": "web",
+      "label": "Web",
+      "description": "Web development, JavaScript, TypeScript, frontend frameworks, CSS"
+    }
+  ]
+}

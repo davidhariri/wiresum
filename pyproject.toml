@@ -1,0 +1,48 @@
+[project]
+name = "wiresum"
+version = "2.0.0"
+description = "AI-powered feed filter - classifies and summarizes Feedbin entries"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+keywords = ["rss", "feed", "ai", "claude", "feedbin", "classification"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Framework :: FastAPI",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet :: WWW/HTTP",
+]
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn>=0.32",
+    "click>=8.1",
+    "httpx>=0.27",
+    "groq>=0.4",
+    "jinja2>=3.1",
+    "rich>=13.0",
+    "apscheduler>=3.10",
+    "python-dotenv>=1.0",
+    "readchar>=4.0",
+    "firecrawl>=1.0",
+]
+
+[project.scripts]
+wiresum = "wiresum.cli:cli"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["wiresum"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]

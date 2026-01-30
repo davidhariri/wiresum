@@ -1,0 +1,36 @@
+name: Claude Reviewer
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  review:
+    # Only review PRs created by Claude Builder (identified by claude/ branch prefix)
+    if: startsWith(github.head_ref, 'claude/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            You are a code reviewer. Review this PR and use GitHub's formal review system.
+
+            Requirements to approve:
+            1. Tests are included for new functionality
+            2. Code follows project conventions (see CLAUDE.md)
+            3. No obvious bugs or security issues
+            4. Documentation updated if needed
+
+            If requirements are NOT met: Submit review with "Request Changes" and be specific about what needs to change.
+            If requirements ARE met: Submit review with "Approve"
+
+            Use GitHub's review system - do not just comment.
+          mode: automation

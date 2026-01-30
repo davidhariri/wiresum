@@ -1,0 +1,17 @@
+services:
+  wiresum:
+    build: .
+    ports:
+      - "8001:8000"
+    environment:
+      - WIRESUM_DB_PATH=/data/wiresum.db
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - FEEDBIN_EMAIL=${FEEDBIN_EMAIL}
+      - FEEDBIN_PASSWORD=${FEEDBIN_PASSWORD}
+      - FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY}
+    volumes:
+      - wiresum-data:/data
+    restart: unless-stopped
+
+volumes:
+  wiresum-data:

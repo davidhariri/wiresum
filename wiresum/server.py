@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 def validate_environment():
     """Validate required environment variables on startup."""
     required = {
-        "GROQ_API_KEY": "Groq API key for classification (https://console.groq.com)",
+        "ANTHROPIC_API_KEY": "Anthropic API key for classification (https://console.anthropic.com)",
         "FEEDBIN_EMAIL": "Feedbin account email",
         "FEEDBIN_PASSWORD": "Feedbin account password",
     }
@@ -304,7 +304,7 @@ def get_digest(
 def get_config():
     """Get current configuration."""
     return {
-        "classification_prompt": db.get_config("classification_prompt") or "",
+        "user_context": db.get_config("user_context") or "",
         "model": db.get_config("model") or "",
         "sync_interval": int(db.get_config("sync_interval") or 15),
         "process_after": db.get_config("process_after") or "",
@@ -314,7 +314,7 @@ def get_config():
 @app.put("/config")
 def update_config(update: ConfigUpdate):
     """Update a configuration value."""
-    valid_keys = {"classification_prompt", "model", "sync_interval", "process_after"}
+    valid_keys = {"user_context", "model", "sync_interval", "process_after"}
     if update.key not in valid_keys:
         raise HTTPException(
             status_code=400,
@@ -435,7 +435,22 @@ def get_rss_feed(limit: int = 50):
         title = html.escape(entry.title or "Untitled")
         link = html.escape(entry.url or "")
         guid = html.escape(entry.url or f"wiresum:{entry.id}")
-        description = html.escape(entry.reasoning or "")
+
+        # Format reasoning as HTML list
+        reasoning_lines = (entry.reasoning or "").strip().split("\n")
+        bullets = [line.lstrip("•-* ").strip() for line in reasoning_lines if line.strip()]
+        if bullets:
+            list_items = "".join(f"<li>{html.escape(b)}</li>" for b in bullets)
+            reasoning_html = f"<ul>{list_items}</ul>"
+        else:
+            reasoning_html = ""
+
+        # Add source attribution
+        source = entry.feed_name or ""
+        if source:
+            source_html = f'<p><small>via {html.escape(source)}</small></p>'
+        else:
+            source_html = ""
 
         # Format pubDate in RFC 822
         pub_date = ""
@@ -451,6 +466,9 @@ def get_rss_feed(limit: int = 50):
         if entry.interest:
             label = interests.get(entry.interest, entry.interest)
             category = f"<category>{html.escape(label)}</category>"
+
+        # Use CDATA for HTML content
+        description = f"<![CDATA[{reasoning_html}{source_html}]]>"
 
         items_xml.append(f"""    <item>
       <title>{title}</title>

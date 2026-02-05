@@ -1,22 +1,16 @@
-"""Classification of feed entries using Groq (Llama)."""
+"""Classification of feed entries using Anthropic Claude."""
 
 import json
 import logging
 import re
-from pathlib import Path
 
+from anthropic import Anthropic
 from firecrawl import Firecrawl
-from groq import Groq
-from jinja2 import Environment, FileSystemLoader
 
 from .config import Config
 from .db import Database, Entry
 
 logger = logging.getLogger(__name__)
-
-
-PROMPT_DIR = Path(__file__).parent / "prompts"
-PROMPT_FILE = "classification.j2"
 
 
 def fetch_content_from_url(config: Config, url: str) -> str | None:
@@ -40,10 +34,51 @@ def fetch_content_from_url(config: Config, url: str) -> str | None:
     return None
 
 
-def load_prompt_template():
-    """Load the Jinja2 prompt template."""
-    env = Environment(loader=FileSystemLoader(PROMPT_DIR))
-    return env.get_template(PROMPT_FILE)
+def build_system_prompt(db: Database) -> str:
+    """Build the system prompt with user context and interests."""
+    user_context = db.get_config("user_context") or ""
+    interests = db.get_interests()
+
+    interests_text = "\n".join(
+        f"- {i.key}: {i.label}" + (f" - {i.description}" if i.description else "")
+        for i in interests
+    )
+
+    return f"""You are a smart assistant helping filter RSS feeds. You know your reader well:
+
+{user_context}
+
+Your job: Classify each article and extract key insights tailored to this reader.
+
+## Output Format (JSON)
+
+{{"interest": "key_or_null", "is_signal": true/false, "reasoning": "bullet points"}}
+
+## Fields
+
+**interest**: Match to one of these keys, or null if none fit:
+{interests_text}
+
+**is_signal**: true ONLY if genuinely valuable. Filter out:
+- Marketing, PR, corporate case studies
+- "How X uses Y" fluff pieces
+- Podcast/video promos without substance
+- News without insight or implications
+
+**reasoning**: Key takeaways as bullet points. Write for your reader specifically.
+- What's the actual insight? (not just "this article discusses X")
+- Why would this matter to someone building in AI/iOS/startups?
+- Any tactical takeaway or implication?
+
+Keep each bullet punchy—one clear thought. 1-3 bullets depending on substance.
+
+Good:
+• Regulatory moat took 4 years to build—competitors effectively locked out
+• Swift 6 ownership approach worth adopting for Counsel's data layer
+
+Bad:
+• This article discusses the importance of regulatory compliance (too vague)
+• Interesting insights about the startup ecosystem (says nothing)"""
 
 
 def classify_entry(
@@ -56,11 +91,10 @@ def classify_entry(
     Returns (interest, is_signal, reasoning).
     """
     # Get model from database config
-    model = db.get_config("model")
+    model = db.get_config("model") or "claude-sonnet-4-20250514"
 
-    # Load Jinja template and get interests
-    template = load_prompt_template()
-    interests = db.get_interests()
+    # Build system prompt with user context
+    system_prompt = build_system_prompt(db)
 
     # If Firecrawl is configured, always fetch content from URL
     # Otherwise, use Feedbin content as-is
@@ -86,24 +120,20 @@ def classify_entry(
             # Persist fetched content to DB
             db.update_entry_content(entry.id, fetched)
 
-    # Render the prompt with interests
-    system_prompt = template.render(interests=interests)
+    # Format the entry for classification
     user_content = format_entry_for_classification(entry)
 
-    # Call Groq
-    client = Groq(api_key=config.groq_api_key)
-    response = client.chat.completions.create(
+    # Call Anthropic
+    client = Anthropic(api_key=config.anthropic_api_key)
+    response = client.messages.create(
         model=model,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_content},
-        ],
-        temperature=0.1,
         max_tokens=500,
+        system=system_prompt,
+        messages=[{"role": "user", "content": user_content}],
     )
 
     # Parse the response
-    content = response.choices[0].message.content
+    content = response.content[0].text
     return parse_classification_response(content)
 
 
@@ -155,7 +185,16 @@ def parse_classification_response(content: str) -> tuple[str | None, bool, str]:
 
         # Handle reasoning as list (model sometimes returns array instead of string)
         if isinstance(reasoning, list):
-            reasoning = "\n".join(reasoning)
+            reasoning = "\n".join(f"• {r}" for r in reasoning)
+
+        # Ensure bullets have bullet points if they don't
+        if reasoning and not reasoning.startswith("•") and not reasoning.startswith("-"):
+            lines = reasoning.strip().split("\n")
+            reasoning = "\n".join(
+                line if line.startswith(("•", "-")) else f"• {line}"
+                for line in lines
+                if line.strip()
+            )
 
         return (interest, is_signal, reasoning)
 

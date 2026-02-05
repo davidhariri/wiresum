@@ -12,7 +12,7 @@ class Config:
     """Application configuration loaded from environment."""
 
     # API Keys
-    groq_api_key: str
+    anthropic_api_key: str
     feedbin_email: str
     feedbin_password: str
     firecrawl_api_key: str
@@ -34,7 +34,7 @@ def load_config() -> Config:
     db_path = Path(db_path_env) if db_path_env else default_db_path
 
     return Config(
-        groq_api_key=os.getenv("GROQ_API_KEY", ""),
+        anthropic_api_key=os.getenv("ANTHROPIC_API_KEY", ""),
         feedbin_email=os.getenv("FEEDBIN_EMAIL", ""),
         feedbin_password=os.getenv("FEEDBIN_PASSWORD", ""),
         firecrawl_api_key=os.getenv("FIRECRAWL_API_KEY", ""),
@@ -43,30 +43,10 @@ def load_config() -> Config:
     )
 
 
-# Default classification prompt - generates analytical insights
-DEFAULT_CLASSIFICATION_PROMPT = """Classify RSS entries. Return JSON.
+# Default user context - personalize summaries for the reader (empty by default)
+DEFAULT_USER_CONTEXT = ""
 
-interest: match to key or null
-is_signal: true if worth reading
-reasoning: MAX 15 WORDS. No articles (a/an/the). No verbs like "shows/demonstrates/highlights". Fragment style.
-
-COPY THIS STYLE EXACTLY:
-- "iCloud sync approach worth copying—closes gap vs Reeder"
-- "10x volume post-election = prediction markets mainstream"
-- "memory trick applicable to Swift codebase"
-- "EU policy push—new partnership opportunities"
-- "€500K grant for AI youth safety research"
-
-WRONG (too long, too formal):
-- "This demonstrates how AI is transforming the design workflow"
-- "The article shows that prediction markets are gaining traction"
-
-Interests:
-{interests}
-
-{{{{"interest": "key_or_null", "is_signal": bool, "reasoning": "15 words max fragment"}}}}"""
-
-DEFAULT_MODEL = "openai/gpt-oss-120b"
+DEFAULT_MODEL = "claude-sonnet-4-20250514"
 DEFAULT_SYNC_INTERVAL = 15  # minutes
 
 # Default interests (key, label, description for AI context)

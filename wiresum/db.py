@@ -6,10 +6,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .config import (
-    DEFAULT_CLASSIFICATION_PROMPT,
     DEFAULT_INTERESTS,
     DEFAULT_MODEL,
     DEFAULT_SYNC_INTERVAL,
+    DEFAULT_USER_CONTEXT,
     get_default_process_after,
 )
 
@@ -127,7 +127,7 @@ class Database:
 
             # Seed default config if not present
             for key, default in [
-                ("classification_prompt", DEFAULT_CLASSIFICATION_PROMPT),
+                ("user_context", DEFAULT_USER_CONTEXT),
                 ("model", DEFAULT_MODEL),
                 ("sync_interval", str(DEFAULT_SYNC_INTERVAL)),
                 ("process_after", get_default_process_after()),

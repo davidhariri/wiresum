@@ -25,7 +25,7 @@ wiresum/
 
 - **Framework**: FastAPI
 - **Database**: SQLite
-- **AI**: Groq API (Llama models)
+- **AI**: Anthropic Claude
 - **Content extraction**: Firecrawl (optional, falls back to basic HTML)
 - **CLI**: Click + Rich (TUI with keyboard navigation)
 - **Scheduler**: APScheduler (background sync/classify jobs)
@@ -73,7 +73,7 @@ For PRs to be approved, ensure:
 
 - `wiresum/server.py` - FastAPI app, lifespan, background jobs, all API routes
 - `wiresum/cli.py` - TUI digest view, list view, all CLI commands
-- `wiresum/classifier.py` - Groq API calls, prompt construction
+- `wiresum/classifier.py` - Claude API calls, prompt construction
 - `wiresum/feedbin.py` - Feedbin sync, optional Firecrawl content extraction
 - `wiresum/db.py` - SQLite schema, Entry/Interest models, all DB operations
 - `wiresum/config.py` - Environment variables, default interests/prompts

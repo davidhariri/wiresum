@@ -6,13 +6,13 @@ AI-powered feed filter. Syncs your Feedbin feeds, classifies entries by interest
 
 1. **Sync** - Background job pulls new entries from Feedbin every 15 minutes
 2. **Fetch** - Firecrawl extracts clean article content (optional, falls back to basic HTML)
-3. **Classify** - Groq/Llama assigns each entry to an interest and decides signal vs noise
+3. **Classify** - Claude assigns each entry to an interest and decides signal vs noise
 4. **Browse** - TUI shows today's signal grouped by interest, with key takeaways
 
 ## Requirements
 
 - Python 3.11+
-- [Groq API key](https://console.groq.com) (free tier works fine)
+- [Anthropic API key](https://console.anthropic.com)
 - [Feedbin account](https://feedbin.com)
 - [Firecrawl API key](https://firecrawl.dev) (optional, improves content extraction)
 
@@ -88,7 +88,7 @@ The server syncs Feedbin entries and classifies them in the background. Use the 
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `GROQ_API_KEY` | Yes | Groq API key for Llama |
+| `ANTHROPIC_API_KEY` | Yes | Anthropic API key for Claude |
 | `FEEDBIN_EMAIL` | Yes | Feedbin email |
 | `FEEDBIN_PASSWORD` | Yes | Feedbin password |
 | `FIRECRAWL_API_KEY` | No | Firecrawl API key (improves content extraction) |
@@ -126,7 +126,7 @@ wiresum/
 │   ├── config.py        # Environment config
 │   ├── db.py            # SQLite operations
 │   ├── feedbin.py       # Feedbin API client
-│   └── classifier.py    # Groq/Llama classification
+│   └── classifier.py    # Claude classification
 ├── pyproject.toml
 ├── Dockerfile
 ├── docker-compose.yml

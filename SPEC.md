@@ -13,7 +13,7 @@ wiresum/
 │   ├── config.py        # Environment + runtime config
 │   ├── db.py            # SQLite operations
 │   ├── feedbin.py       # Feedbin API client
-│   └── classifier.py    # Groq/Llama classification
+│   └── classifier.py    # Claude classification
 ├── pyproject.toml
 ├── Dockerfile
 ├── docker-compose.yml
@@ -26,7 +26,7 @@ wiresum/
 
 Runs continuously in Docker:
 - **Background sync**: Polls Feedbin every N minutes, stores new entries
-- **Background processing**: Classifies unprocessed entries with Groq (Llama)
+- **Background processing**: Classifies unprocessed entries with Claude
 - **API endpoints**:
   - `GET /entries` - List entries (with filters: processed, interest, etc.)
   - `GET /entries/{id}` - Get specific entry
@@ -111,7 +111,7 @@ CREATE TABLE interests (
 ```
 FEEDBIN_EMAIL=...
 FEEDBIN_PASSWORD=...
-GROQ_API_KEY=...
+ANTHROPIC_API_KEY=...
 FIRECRAWL_API_KEY=...          # Optional, improves content extraction
 WIRESUM_DB_PATH=/data/wiresum.db
 WIRESUM_SERVER_URL=http://localhost:8000
@@ -119,7 +119,7 @@ WIRESUM_SERVER_URL=http://localhost:8000
 
 ## Classification
 
-Groq (Llama) receives entries and classifies them:
+Claude receives entries and classifies them:
 - **interest**: Which interest this entry belongs to (or null if irrelevant)
 - **is_signal**: Whether this is worth reading (1) or noise (0)
 - **reasoning**: Brief explanation of the classification

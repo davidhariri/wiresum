@@ -2,33 +2,33 @@
 
 ## Project Overview
 
-Wiresum is a minimal, AI-powered read-later app. Users save links via a bookmarklet, and Claude generates summaries with key takeaways. Built with FastAPI and SQLite.
+Wiresum is an AI-powered feed filter. It syncs entries from Feedbin, classifies them by interest using Groq/Llama, and separates signal from noise. The server runs headless with background jobs; the CLI provides a TUI for browsing.
 
 ## Architecture
 
 ```
 wiresum/
-├── api/              # FastAPI web app
-│   ├── main.py       # App entry point, middleware
-│   ├── routes/       # API endpoints
-│   └── templates/    # Jinja2 HTML templates
-├── ai/               # Claude integration
-│   └── summarizer.py # Article summarization
-├── extraction/       # Content extraction
-│   └── content.py    # trafilatura wrapper
-├── storage/          # Data layer
-│   └── database.py   # SQLite operations
-└── cli.py            # CLI commands
+├── wiresum/
+│   ├── server.py        # FastAPI server + background scheduler
+│   ├── cli.py           # Click CLI + Rich TUI
+│   ├── config.py        # Environment config + defaults
+│   ├── db.py            # SQLite operations
+│   ├── feedbin.py       # Feedbin API client + Firecrawl extraction
+│   └── classifier.py    # Groq/Llama classification
+├── pyproject.toml
+├── Dockerfile
+├── docker-compose.yml
+└── .env.example
 ```
 
 ## Tech Stack
 
 - **Framework**: FastAPI
 - **Database**: SQLite
-- **AI**: Anthropic Claude API
-- **Content extraction**: trafilatura
-- **Templates**: Jinja2
-- **CLI**: Click
+- **AI**: Groq API (Llama models)
+- **Content extraction**: Firecrawl (optional, falls back to basic HTML)
+- **CLI**: Click + Rich (TUI with keyboard navigation)
+- **Scheduler**: APScheduler (background sync/classify jobs)
 - **Linter**: Ruff
 
 ## Code Conventions
@@ -57,7 +57,7 @@ Currently no test suite. When adding tests:
 
 For PRs to be approved, ensure:
 - [ ] Code follows existing patterns in the codebase
-- [ ] No obvious security issues (especially auth/API key handling)
+- [ ] No obvious security issues (especially API key handling)
 - [ ] Changes are documented if they affect user-facing behavior
 - [ ] Tests included for new functionality (when test suite exists)
 - [ ] Ruff linting passes: `ruff check wiresum/`
@@ -65,20 +65,24 @@ For PRs to be approved, ensure:
 ## Environment
 
 - Local dev: `pip install -e .`
-- Run: `uvicorn wiresum.api.main:app --reload`
+- Run server: `uvicorn wiresum.server:app --reload`
+- Run CLI: `wiresum` (requires server running)
 - Docker: `docker-compose up --build`
-- Deploy: Railway (auto-deploys from main)
 
 ## Key Files
 
-- `wiresum/api/main.py` - FastAPI app setup and middleware
-- `wiresum/api/routes/articles.py` - CRUD for saved articles
-- `wiresum/ai/summarizer.py` - Claude summarization logic
-- `wiresum/storage/database.py` - SQLite database operations
+- `wiresum/server.py` - FastAPI app, lifespan, background jobs, all API routes
+- `wiresum/cli.py` - TUI digest view, list view, all CLI commands
+- `wiresum/classifier.py` - Groq API calls, prompt construction
+- `wiresum/feedbin.py` - Feedbin sync, optional Firecrawl content extraction
+- `wiresum/db.py` - SQLite schema, Entry/Interest models, all DB operations
+- `wiresum/config.py` - Environment variables, default interests/prompts
 
 ## Gotchas
 
-- API key auth uses `Authorization: Bearer {key}` header
-- Session auth uses `itsdangerous` signed cookies
-- Database path is configurable via `WIRESUM_DB_PATH` env var
-- Content extraction can fail on paywalled/JS-heavy sites
+- Server and CLI are separate: CLI talks to server via HTTP
+- No auth on API (designed for local/private use)
+- Database path configurable via `WIRESUM_DB_PATH` env var
+- `FIRECRAWL_API_KEY` is optional; without it, uses basic HTML extraction
+- Background jobs: sync runs every N minutes, classify runs every minute
+- Schema uses "interest" (not "topic") and "label" (not "name")

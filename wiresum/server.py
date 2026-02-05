@@ -1,19 +1,22 @@
 """FastAPI server with background sync and classification tasks."""
 
+import html
 import logging
 import os
 import sys
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
+from email.utils import format_datetime
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import Response
 from pydantic import BaseModel
 
 from .classifier import classify_entry, process_unclassified_entries
 from .config import load_config
 from .db import Database
 from .feedbin import sync_feedbin
-
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -406,6 +409,70 @@ def requeue_entries(since_hours: int = 24):
     """Mark entries for reprocessing by clearing their processed status."""
     count = db.requeue_entries(since_hours=since_hours)
     return {"status": "ok", "requeued": count}
+
+
+@app.get("/feed.xml")
+def get_rss_feed(limit: int = 50):
+    """Get signal entries as an RSS feed.
+
+    Returns the most recent signal entries with AI-generated insights as content.
+    """
+    # Get recent signal entries
+    entries = db.get_entries(
+        processed=True,
+        is_signal=True,
+        limit=limit,
+    )
+
+    # Build interest lookup for labels
+    interests = {i.key: i.label for i in db.get_interests()}
+
+    # Build RSS XML
+    now = format_datetime(datetime.now(UTC))
+
+    items_xml = []
+    for entry in entries:
+        title = html.escape(entry.title or "Untitled")
+        link = html.escape(entry.url or "")
+        guid = html.escape(entry.url or f"wiresum:{entry.id}")
+        description = html.escape(entry.reasoning or "")
+
+        # Format pubDate in RFC 822
+        pub_date = ""
+        if entry.published_at:
+            try:
+                dt = datetime.fromisoformat(entry.published_at.replace("Z", "+00:00"))
+                pub_date = format_datetime(dt)
+            except (ValueError, AttributeError):
+                pass
+
+        # Get interest label for category
+        category = ""
+        if entry.interest:
+            label = interests.get(entry.interest, entry.interest)
+            category = f"<category>{html.escape(label)}</category>"
+
+        items_xml.append(f"""    <item>
+      <title>{title}</title>
+      <link>{link}</link>
+      <guid isPermaLink="true">{guid}</guid>
+      <pubDate>{pub_date}</pubDate>
+      {category}
+      <description>{description}</description>
+    </item>""")
+
+    rss_xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Wiresum Signal</title>
+    <link>https://wiresum.app</link>
+    <description>AI-filtered feed entries worth reading</description>
+    <lastBuildDate>{now}</lastBuildDate>
+{chr(10).join(items_xml)}
+  </channel>
+</rss>"""
+
+    return Response(content=rss_xml, media_type="application/rss+xml")
 
 
 # --- Helpers ---

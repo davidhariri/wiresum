@@ -168,10 +168,15 @@ class Database:
                 conn.execute("ALTER TABLE interests RENAME COLUMN name TO label")
 
         # Add read_at column if it doesn't exist (for read/unread tracking)
-        columns = conn.execute("PRAGMA table_info(entries)").fetchall()
-        column_names = [col[1] for col in columns]
-        if "read_at" not in column_names:
-            conn.execute("ALTER TABLE entries ADD COLUMN read_at TEXT")
+        # Only run if entries table exists (skip on fresh install)
+        entries_exists = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='entries'"
+        ).fetchone()
+        if entries_exists:
+            columns = conn.execute("PRAGMA table_info(entries)").fetchall()
+            column_names = [col[1] for col in columns]
+            if "read_at" not in column_names:
+                conn.execute("ALTER TABLE entries ADD COLUMN read_at TEXT")
 
     @contextmanager
     def _connect(self):

@@ -114,6 +114,7 @@ The server syncs Feedbin entries and classifies them in the background. Use the 
 | `GET` | `/stats` | Database statistics |
 | `POST` | `/sync` | Trigger Feedbin sync |
 | `POST` | `/entries/requeue` | Re-queue entries for classification |
+| `GET` | `/feed.xml` | RSS feed of signal entries |
 
 ## Architecture
 
